@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Panda;
 
 public class MechAIDecisions : MechAI {
 
@@ -52,6 +53,24 @@ public class MechAIDecisions : MechAI {
         mechAIMovement.Movement(patrolPoints[patrolIndex].transform.position, 1);
     }
 
+    [Task]
+    bool HasAttackTarget()
+    {
+        if (attackTarget)
+            return true;
+        else
+            return false;
+    }
+
+    [Task]
+    bool TargetLOS()
+    {
+        if (mechAIAiming.LineOfSight(attackTarget))
+            return true;
+        else
+            return false;
+    }
+
     // Update is called once per frame
     void Update() {
 
@@ -66,7 +85,7 @@ public class MechAIDecisions : MechAI {
             FiringSystem();
 
         //FSM - Behaviour Selection
-        switch (mechState) {
+        /*switch (mechState) {
             case (MechStates.Roam):
                 Roam();
             break;
@@ -89,15 +108,20 @@ public class MechAIDecisions : MechAI {
         else if (StatusCheck())
             mechState = MechStates.Flee;
         else
-            mechState = MechStates.Roam;
+            mechState = MechStates.Roam; */
     }
 
     //FSM Behaviour: Roam - Roam between random patrol points
-    private void Roam() {
+    [Task]
+    private void Roam()
+    {
         //Move towards random patrol point
-        if (Vector3.Distance(transform.position, patrolPoints[patrolIndex].transform.position) <= 2.0f) {
+        if (Vector3.Distance(transform.position, patrolPoints[patrolIndex].transform.position) <= 2.0f)
+        {
             patrolIndex = Random.Range(0, patrolPoints.Length - 1);
-        } else {
+        }
+        else
+        {
             mechAIMovement.Movement(patrolPoints[patrolIndex].transform.position, 1);
         }
         //Look at random patrol points
@@ -105,20 +129,25 @@ public class MechAIDecisions : MechAI {
     }
 
     //FSM Behaviour: Attack 
-    private void Attack() {
-         
+    [Task]
+    private void Attack()
+    {
+
         //If there is a target, set it as the aimTarget 
-        if (attackTarget && mechAIAiming.LineOfSight(attackTarget)) {
+        if (attackTarget && mechAIAiming.LineOfSight(attackTarget))
+        {
 
             //Child object correction - wonky pivot point
             mechAIAiming.aimTarget = attackTarget.transform.GetChild(0).gameObject;
 
             //Move Towards attack Target
-            if (Vector3.Distance(transform.position, attackTarget.transform.position) >= 45.0f) {
+            if (Vector3.Distance(transform.position, attackTarget.transform.position) >= 45.0f)
+            {
                 mechAIMovement.Movement(attackTarget.transform.position, 45);
             }
             //Otherwise "strafe" - move towards random patrol points at intervals
-            else if (Vector3.Distance(transform.position, attackTarget.transform.position) < 45.0f && Time.time > attackTimer) {
+            else if (Vector3.Distance(transform.position, attackTarget.transform.position) < 45.0f && Time.time > attackTimer)
+            {
                 patrolIndex = Random.Range(0, patrolPoints.Length - 1);
                 mechAIMovement.Movement(patrolPoints[patrolIndex].transform.position, 2);
                 attackTimer = Time.time + attackTime + Random.Range(-0.5f, 0.5f);
@@ -130,6 +159,7 @@ public class MechAIDecisions : MechAI {
     }
 
     //FSM Behaviour: Pursue
+    [Task]
     void Pursue() {
 
         //Move towards last known position of attackTarget
@@ -147,6 +177,7 @@ public class MechAIDecisions : MechAI {
     }
 
     //FSM Behaviour: Flee
+    [Task]
     void Flee() {
 
         //If there is an attack target, set it as the aimTarget 
@@ -183,7 +214,9 @@ public class MechAIDecisions : MechAI {
     }
 
     //Method for checking heuristic status of Mech to determine if Fleeing is necessary
-    private bool StatusCheck() {
+    [Task]
+    private bool StatusCheck()
+    {
 
         float status = mechSystem.health + mechSystem.energy + (mechSystem.shells * 7) + (mechSystem.missiles * 10);
 
