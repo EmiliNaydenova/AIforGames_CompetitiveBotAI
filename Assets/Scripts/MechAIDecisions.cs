@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Panda;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class MechAIDecisions : MechAI {
 
@@ -214,20 +215,116 @@ public class MechAIDecisions : MechAI {
     }
 
     //Method for checking heuristic status of Mech to determine if Fleeing is necessary
+    //[Task]
+    private bool StatusCheck1()
+    {
+        float status = mechSystem.health + mechSystem.energy + (mechSystem.shells * 7) + (mechSystem.missiles * 10);
+        if (status > 1500)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
     [Task]
     private bool StatusCheck()
     {
-
-        float status = mechSystem.health + mechSystem.energy + (mechSystem.shells * 7) + (mechSystem.missiles * 10);
-
-        if (status > 1500)
-            return false;
-        else
+        float healthScore = mechSystem.health * 2.0f;
+        float energyScore = mechSystem.energy * 1.0f;
+        float ammoScore = (mechSystem.shells * 7) + (mechSystem.missiles * 10);
+        float totalStatus = healthScore + energyScore + ammoScore;
+        float fleeThreshold = 1800;
+        if (attackTarget)
+        {
+            float distanceToTarget = Vector3.Distance(transform.position, attackTarget.transform.position);
+            if (distanceToTarget < 25)
+            {
+                fleeThreshold += 400;
+            }
+            else if (distanceToTarget < 45)
+            {
+                fleeThreshold += 200;
+            }
+            else if (distanceToTarget > 60)
+            {
+                fleeThreshold -= 300;
+            }
+        }
+        if (mechSystem.health < 200)
+        {
             return true;
+        }
+        if (mechSystem.shells < 5 && mechSystem.missiles < 10)
+        {
+            fleeThreshold -= 200;
+        }
+        if (mechSystem.health < 400 && (mechSystem.shells > 20 || mechSystem.missiles > 30))
+        {
+            fleeThreshold += 300;
+        }
+        return totalStatus < fleeThreshold;
     }
 
+    [Task]
+    bool CriticalHealth()
+    {
+        return mechSystem.health < 250;
+    }
+
+    [Task]
+    void TacticalRetreat()
+    {
+        if (attackTarget && mechAIAiming.LineOfSight(attackTarget))
+        {
+            mechAIAiming.aimTarget = attackTarget.transform.GetChild(0).gameObject;
+        }
+        else
+        {
+            mechAIAiming.RandomAimTarget(patrolPoints);
+        }
+
+        if (attackTarget)
+        {
+            float maxDistance = 0;
+            int furthestPointIndex = 0;
+            for (int i = 0; i < patrolPoints.Length; i++)
+            {
+                float distance = Vector3.Distance(patrolPoints[i].transform.position, attackTarget.transform.position);
+                if (distance > maxDistance)
+                {
+                    maxDistance = distance;
+                    furthestPointIndex = 1;
+                }
+            }
+            if (Vector3.Distance(transform.position, patrolPoints[furthestPointIndex].transform.position) > 2.0f)
+            {
+                mechAIMovement.Movement(patrolPoints[furthestPointIndex].transform.position, 1);
+            }
+            else
+            {
+                patrolIndex = furthestPointIndex;
+            }
+        }
+        else
+        {
+            if (Vector3.Distance(transform.position, patrolPoints[patrolIndex].transform.position) <= 2.0f)
+            {
+                patrolIndex = Random.Range(0, patrolPoints.Length - 1);
+            }
+            else
+            {
+                mechAIMovement.Movement(patrolPoints[patrolIndex].transform.position, 1);
+            }
+        }
+    }
+    
+
     //Method controlling logic of firing of weapons: Consider minimum ammunition, appropriate range, firing angle etc
-    private void FiringSystem() {
+    private void FiringSystem()
+    {
 
         //Lasers - Enough energy and within a generous firing angle
         if (mechSystem.energy > 10 && mechAIAiming.FireAngle(20))
@@ -246,7 +343,7 @@ public class MechAIDecisions : MechAI {
         else
             mechAIWeapons.laserBeamAI = false;
 
-        
+
         //Missile Array - Long Range, enough ammo, very tight firing angle
         if (Vector3.Distance(transform.position, attackTarget.transform.position) > 50
             && mechSystem.missiles >= 18 && mechAIAiming.FireAngle(5))

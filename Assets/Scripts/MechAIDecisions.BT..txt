@@ -2,18 +2,19 @@ tree("Root")
 	repeat
 		mute
 			fallback
-				tree "Pursuing"
+				tree "EmergencyFlee"
 				tree "Attacking"
-				tree "Fleeing"
+				tree "Pursuing"
+				tree "TacticalRetreat"
 				tree "Roaming"
-tree ("Pursuing")
+tree("EmergencyFlee")
 	while
 		sequence
 			HasAttackTarget()
-			not TargetLOS()
-			not StatusCheck()
-		repeat
-			Pursue()
+			StatusCheck()
+			CriticalHealth()
+	repeat
+		Flee()
 tree ("Attacking")
 	while
 		sequence
@@ -22,16 +23,23 @@ tree ("Attacking")
 			not StatusCheck()
 		repeat
 			Attack()
-tree ("Fleeing")
-	while 
+tree ("Pursuing")
+	while
+		sequence
+			HasAttackTarget()
+			not TargetLOS()
+			not StatusCheck()
+		repeat
+			Pursue()
+tree("TacticalRetreat")
+	while
 		sequence
 			HasAttackTarget()
 			StatusCheck()
-		repeat
-			Flee()
+			not CriticalHealth()
+	repeat
+		TacticalRetreat()
 tree ("Roaming")
 	while not HasAttackTarget()
 		repeat
 			Roam()
-
-
