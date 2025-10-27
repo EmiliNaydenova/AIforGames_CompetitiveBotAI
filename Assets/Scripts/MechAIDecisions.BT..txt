@@ -1,12 +1,16 @@
 tree("Root")
 	repeat
-		mute
-			fallback
-				tree "EmergencyFlee"
-				tree "Attacking"
-				tree "Pursuing"
-				tree "TacticalRetreat"
-				tree "Roaming"
+		parallel
+			tree "WeaponsRoot"
+			tree "CombatDecisions"
+tree("CombatDecisions")
+	mute
+		fallback
+			tree "EmergencyFlee"
+			tree "Attacking"
+			tree "Pursuing"
+			tree "TacticalRetreat"
+			tree "Roaming"
 tree("EmergencyFlee")
 	while
 		sequence
@@ -43,3 +47,60 @@ tree ("Roaming")
 	while not HasAttackTarget()
 		repeat
 			Roam()
+
+
+tree("WeaponsRoot")
+    while HasAttackTarget()
+        	repeat
+                mute
+					fallback
+						tree"ConserveAmmoStrategy"
+						tree"AggressiveStrategy"
+						tree"BalancedStrategy"
+tree("ConserveAmmoStrategy")
+	while ShouldConserveAmmo()
+		parallel
+				tree "LaserSystemConservative"
+				tree "MissileSystemLongRangeOnly"
+tree("AggressiveStrategy")
+	while HasPlentyOfResources()
+		parallel
+			tree "LaserSystem"
+			tree "CannonSystemAggressive"
+			tree "LaserBeamSystem"
+			tree "MissileSystem"
+
+tree("BalancedStrategy")
+	parallel
+		tree "LaserSystem"
+		tree "CannonSystem"
+		tree "MissilesSystemBalanced"
+tree("LaserSystem")
+    while CanFireLasers()
+        FireLasers()
+tree("LaserSystemConservative")
+	while CanFireLasers()
+		FireLasers()
+tree("CannonSystem")
+    while CanFireCannons()
+        FireCannons()
+tree("CannonSystemAggressive")
+	while CanFireCannons()
+		FireCannons()
+tree("LaserBeamSystem")
+    sequence 
+        while CanFireLaserBeam()
+            FireLaserBeam()
+        DisableLaserBeam()
+tree("MissileSystem")
+    while CanFireMissiles()
+        FireMissiles()
+tree("MissileSystemBalanced")
+	while
+		sequence
+			CanFireMissiles()
+			IsTargetAtLongRange()
+		FireMissiles()
+tree("MissileSystemLongRangeOnly")
+	while CanFireMissiles()
+		FireMissiles()

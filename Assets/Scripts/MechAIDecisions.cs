@@ -82,8 +82,8 @@ public class MechAIDecisions : MechAI {
             attackTarget = mechAIAiming.ClosestTarget(mechAIAiming.currentTargets);
             mechAIWeapons.laserBeamAI = false;  //Hard disable on laserBeam
         }
-        else
-            FiringSystem();
+        //else
+            //FiringSystem();
 
         //FSM - Behaviour Selection
         /*switch (mechState) {
@@ -232,7 +232,7 @@ public class MechAIDecisions : MechAI {
     [Task]
     private bool StatusCheck()
     {
-        float healthScore = mechSystem.health * 2.0f;
+        float healthScore = mechSystem.health * 2.0f; //because health is most important
         float energyScore = mechSystem.energy * 1.0f;
         float ammoScore = (mechSystem.shells * 7) + (mechSystem.missiles * 10);
         float totalStatus = healthScore + energyScore + ammoScore;
@@ -256,14 +256,6 @@ public class MechAIDecisions : MechAI {
         if (mechSystem.health < 200)
         {
             return true;
-        }
-        if (mechSystem.shells < 5 && mechSystem.missiles < 10)
-        {
-            fleeThreshold -= 200;
-        }
-        if (mechSystem.health < 400 && (mechSystem.shells > 20 || mechSystem.missiles > 30))
-        {
-            fleeThreshold += 300;
         }
         return totalStatus < fleeThreshold;
     }
@@ -320,7 +312,159 @@ public class MechAIDecisions : MechAI {
             }
         }
     }
-    
+
+
+    [Task]
+    bool CanFireMissiles()
+    {
+        if (!attackTarget) return false;
+        float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+        if (HasLowMissiles())
+        {
+            if (distance < 65) return false;
+        }
+        return distance > 50 && mechSystem.missiles >= 10 && mechAIAiming.FireAngle(5);
+    }
+
+    [Task]
+    void FireCannons()
+    {
+        if (CanFireCannons())
+        {
+            mechAIWeapons.Cannons();
+        }
+    }
+
+    [Task]
+    void FireLaserBeam()
+    {
+        if (CanFireLaserBeam())
+        {
+            mechAIWeapons.laserBeamAI = true;
+        }
+        else
+        {
+            mechAIWeapons.laserBeamAI = false;
+        }
+    }
+
+    [Task]
+    void FireMissiles()
+    {
+        if (CanFireMissiles())
+        {
+            mechAIWeapons.MissileArray();
+        }
+    }
+
+    [Task]
+    void DisableLaserBeam()
+    {
+        mechAIWeapons.laserBeamAI = false;
+    }
+
+    [Task]
+    bool HasPlentyOfEnergy()
+    {
+        return mechSystem.energy > 300;
+    }
+
+    bool HasLowEnergy()
+    {
+        return mechSystem.energy < 150;
+    }
+
+    [Task]
+    bool HasPlentyShells()
+    {
+        return mechSystem.shells < 8;
+    }
+
+    [Task]
+    bool HasLowShells()
+    {
+        return mechSystem.shells < 8;
+    }
+    [Task]
+    bool HasPlentyOfMissiles()
+    {
+        return mechSystem.missiles > 30;
+    }
+    [Task]
+    bool HasLowMissiles()
+    {
+        return mechSystem.missiles < 15;
+    }
+    [Task]
+    bool IsTargetLowHealth()
+    {
+        return false;
+    }
+
+    [Task]
+    bool IsTargetAtCloseRange()
+    {
+        if (!attackTarget) return false;
+        float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+        return distance < 30;
+    }
+
+    [Task]
+    bool IsTargetAtMediumRange()
+    {
+        if (!attackTarget) return false;
+        float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+        return distance >= 30 && distance < 55;
+    }
+
+    [Task]
+    bool IsTargetAtLongRange()
+    {
+        if (!attackTarget) return false;
+        float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+        return distance >= 55;
+    }
+
+    [Task]
+    bool CanFireLasers()
+    {
+        if (HasLowEnergy() && HasPlentyShells()) return false;
+        return mechSystem.energy > 10 && mechAIAiming.FireAngle(20);
+    }
+    [Task]
+    bool CanFireCannons()
+    {
+        if (!attackTarget) return false;
+        float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+        if (HasLowShells())
+        {
+            if (distance > 40) return false;
+        }
+        return distance > 25 && distance < 60 && mechSystem.shells > 2 && mechAIAiming.FireAngle(15);
+    }
+    [Task]
+    bool CanFireLaserBeam()
+    {
+        if (!attackTarget) return false;
+        float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+        if (!HasPlentyOfEnergy())
+        {
+            return false;
+        }
+        return distance > 30 && distance < 50 && mechSystem.energy >= 350 && mechAIAiming.FireAngle(8); 
+    }
+    [Task]
+    bool ShouldConserveAmmo()
+    {
+        return HasLowEnergy() || HasLowShells() || HasLowMissiles();
+    }
+
+    [Task]
+    bool HasPlentyOfResources()
+    {
+        return HasPlentyOfEnergy() && HasPlentyShells();
+    }
+
 
     //Method controlling logic of firing of weapons: Consider minimum ammunition, appropriate range, firing angle etc
     private void FiringSystem()
